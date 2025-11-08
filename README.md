@@ -1,5 +1,7 @@
 # Loguru-config
 
+_This is a personal fork of https://github.com/erezinman/loguru-config_
+
 Loguru-config is a simple configurator for the [Loguru](https://github.com/Delgan/loguru) logging library. It extends
 the functionality of Loguru by allowing the user to configure the logger from a configuration file. This package
 provides a much-needed feature to Loguru, which is the ability to configure the logger from a configuration file (for
@@ -14,6 +16,16 @@ The configurator supports parsing of JSON, JSON5, YAML, and TOML files (out of t
 other formats (again, see [Extending the configurator](#extending-the-configurator) below).
 
 ## Installation
+
+Loguru-config requires Python 3.11 or newer.
+
+With [uv](https://docs.astral.sh/uv/) installed, add the package to your project with:
+
+```bash
+uv add loguru-config
+```
+
+If you prefer `pip`, the published wheel remains available:
 
 ```bash
 pip install loguru-config
@@ -189,3 +201,17 @@ config.supported_protocol_parsers = list(LoguruConfig.supported_protocol_parsers
 
 config.parse().configure()
 ```
+
+## Development
+
+This project is managed with [uv](https://docs.astral.sh/uv/). To bootstrap a development environment and run the
+test suite:
+
+```bash
+uv sync
+uv run pytest
+```
+
+The `uv sync` command resolves and installs dependencies into a local virtual environment (by default, `.venv/`).
+After updating dependencies in `pyproject.toml`, regenerate the lock file with `uv lock` or `uv sync` before
+committing.
