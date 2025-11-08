@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import pathlib
 import random
+from copy import deepcopy
 from typing import Dict, Iterable, Iterator, Optional, Sequence, Tuple
 
 import click
@@ -18,6 +19,18 @@ from loguru_config.parsable_config import ParsableConfiguration
 from loguru_config.example_stubs import ensure_example_stubs
 
 console = Console()
+
+
+def _snapshot_default_levels() -> Dict[str, object]:
+    from loguru import logger
+
+    # ``logger._core.levels`` holds ``Level`` namedtuples which are immutable, so a
+    # shallow copy is sufficient. We still use ``deepcopy`` to guard against any
+    # future changes in Loguru's implementation while keeping mutations isolated.
+    return {name: deepcopy(level) for name, level in logger._core.levels.items()}
+
+
+_DEFAULT_LEVEL_STATE = _snapshot_default_levels()
 
 
 class CliError(click.ClickException):
@@ -164,17 +177,6 @@ FORTUNES = (
 )
 
 
-_DEFAULT_LOGURU_LEVELS = {
-    "TRACE",
-    "DEBUG",
-    "INFO",
-    "SUCCESS",
-    "WARNING",
-    "ERROR",
-    "CRITICAL",
-}
-
-
 def _iter_level_names(config: LoguruConfig) -> Iterable[str]:
     if config.levels:
         for entry in config.levels:
@@ -202,12 +204,28 @@ def _ensure_handler_directories(config: LoguruConfig) -> None:
                 path.parent.mkdir(parents=True, exist_ok=True)
 
 
+def _remove_levels_for_config(config: LoguruConfig) -> None:
+    from loguru import logger
+
+    if not config.levels:
+        return
+
+    for entry in config.levels:
+        if isinstance(entry, dict):
+            name = entry.get("name")
+        else:
+            name = getattr(entry, "name", None)
+        if name and name in logger._core.levels:  # type: ignore[attr-defined]
+            del logger._core.levels[str(name)]  # type: ignore[attr-defined]
+
+
 def _reset_custom_levels() -> None:
     from loguru import logger
 
-    for name in list(logger._core.levels.keys()):  # type: ignore[attr-defined]
-        if name not in _DEFAULT_LOGURU_LEVELS:
-            del logger._core.levels[name]  # type: ignore[attr-defined]
+    logger._core.levels.clear()  # type: ignore[attr-defined]
+    logger._core.levels.update(  # type: ignore[attr-defined]
+        {name: deepcopy(level) for name, level in _DEFAULT_LEVEL_STATE.items()}
+    )
 
 
 @cli.command()
@@ -224,6 +242,7 @@ def test(configs: Tuple[str, ...]) -> None:
     for index, (loguru_config, _, path, _) in enumerate(loaded):
         _render_heading(paths, index)
         _ensure_handler_directories(loguru_config)
+        _remove_levels_for_config(loguru_config)
         handler_ids = loguru_config.configure()
         console.print(
             f"[green]Configured logger with {len(handler_ids)} handlers from {path or 'stdin'}.[/green]"
