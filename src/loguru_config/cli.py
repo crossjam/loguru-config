@@ -127,6 +127,11 @@ FORTUNES = (
     "Logging clarity brings production serenity.",
     "Refactor fearlessly; the logs have your back.",
     "Verbose logs reveal the quietest bugs.",
+    "Tracebacks tremble before tidy trace logs.",
+    "A patient logger tells the story your tests forgot.",
+    "Stack traces shine when log levels align.",
+    "Tomorrow's outage is foiled by today's log review.",
+    "May your log files roll gently and your metrics sing.",
 )
 
 
