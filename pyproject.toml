@@ -37,7 +37,11 @@ tests = [
 [project.urls]
 Homepage = "https://github.com/erezinman/loguru-config"
 
+[tool.setuptools.package-dir]
+"" = "src"
+
 [tool.setuptools.packages.find]
+where = ["src"]
 include = ["loguru_config*"]
 
 [tool.setuptools.package-data]
