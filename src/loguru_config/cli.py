@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 import pathlib
 import random
-from typing import Dict, Iterable, Optional
+from typing import Dict, Iterable, Iterator, Optional, Sequence, Tuple
 
 import click
 from click_default_group import DefaultGroup
@@ -15,6 +15,7 @@ from rich.table import Table
 
 from loguru_config.loguru_config import LoguruConfig
 from loguru_config.parsable_config import ParsableConfiguration
+from loguru_config.example_stubs import ensure_example_stubs
 
 console = Console()
 
@@ -47,7 +48,12 @@ def _load_config_text(config_text: str) -> tuple[Dict, str]:
     errors: Dict[str, Exception] = {}
     for loader in ParsableConfiguration.supported_loaders:
         try:
-            return loader(config_text), loader.__name__
+            loaded = loader(config_text)
+            if isinstance(loaded, dict):
+                return loaded, loader.__name__
+            errors[loader.__name__] = TypeError(
+                "Loader did not return a mapping configuration."
+            )
         except ImportError:
             # Loader dependency is not installed, skip silently so another loader can succeed.
             continue
@@ -70,6 +76,25 @@ def _load_loguru_config(source: Optional[str]) -> tuple[LoguruConfig, Dict, Opti
     if config is None:  # pragma: no cover - defensive, load returns config when configure=False.
         raise CliError("Failed to load configuration")
     return config.parse(), data, path, loader_name
+
+
+def _iter_sources(configs: Sequence[Optional[str]]) -> Iterator[Optional[str]]:
+    if not configs:
+        yield None
+        return
+
+    for config in configs:
+        yield config
+
+
+def _load_multiple_configs(configs: Sequence[Optional[str]]) -> list[tuple[LoguruConfig, Dict, Optional[pathlib.Path], str]]:
+    return [_load_loguru_config(source) for source in _iter_sources(configs)]
+
+
+def _render_heading(paths: Sequence[Optional[pathlib.Path]], index: int) -> None:
+    if len(paths) > 1:
+        path = paths[index]
+        console.rule(str(path) if path else "stdin")
 
 
 @click.group(
@@ -105,19 +130,23 @@ def about() -> None:
 
 
 @cli.command()
-@click.argument("config", required=False)
-def validate(config: Optional[str]) -> None:
+@click.argument("configs", nargs=-1)
+def validate(configs: Tuple[str, ...]) -> None:
     """Validate that a configuration file is parseable and valid."""
 
-    loguru_config, _, path, _ = _load_loguru_config(config)
-    summary = Table(title="Configuration Summary", show_header=False)
-    summary.add_row("Source", str(path) if path else "stdin")
-    summary.add_row("Handlers", str(len(loguru_config.handlers or [])))
-    summary.add_row("Levels", str(len(loguru_config.levels or [])))
-    summary.add_row("Extra keys", str(len((loguru_config.extra or {}).keys())))
-    summary.add_row("Activation entries", str(len(loguru_config.activation or [])))
-    console.print("[green]Configuration is valid.[/green]")
-    console.print(summary)
+    loaded = _load_multiple_configs(configs)
+    paths = [path for _, __, path, ___ in loaded]
+
+    for index, (loguru_config, _, path, _) in enumerate(loaded):
+        _render_heading(paths, index)
+        summary = Table(title="Configuration Summary", show_header=False)
+        summary.add_row("Source", str(path) if path else "stdin")
+        summary.add_row("Handlers", str(len(loguru_config.handlers or [])))
+        summary.add_row("Levels", str(len(loguru_config.levels or [])))
+        summary.add_row("Extra keys", str(len((loguru_config.extra or {}).keys())))
+        summary.add_row("Activation entries", str(len(loguru_config.activation or [])))
+        console.print("[green]Configuration is valid.[/green]")
+        console.print(summary)
 
 
 FORTUNES = (
@@ -135,6 +164,17 @@ FORTUNES = (
 )
 
 
+_DEFAULT_LOGURU_LEVELS = {
+    "TRACE",
+    "DEBUG",
+    "INFO",
+    "SUCCESS",
+    "WARNING",
+    "ERROR",
+    "CRITICAL",
+}
+
+
 def _iter_level_names(config: LoguruConfig) -> Iterable[str]:
     if config.levels:
         for entry in config.levels:
@@ -148,27 +188,61 @@ def _iter_level_names(config: LoguruConfig) -> Iterable[str]:
         yield from ("TRACE", "DEBUG", "INFO", "SUCCESS", "WARNING", "ERROR", "CRITICAL")
 
 
+def _ensure_handler_directories(config: LoguruConfig) -> None:
+    handlers = config.handlers or []
+    for handler in handlers:
+        sink = None
+        if isinstance(handler, dict):
+            sink = handler.get("sink")
+        else:
+            sink = getattr(handler, "sink", None)
+        if isinstance(sink, str) and not sink.startswith("ext://"):
+            path = pathlib.Path(sink)
+            if path.parent and not path.parent.exists():
+                path.parent.mkdir(parents=True, exist_ok=True)
+
+
+def _reset_custom_levels() -> None:
+    from loguru import logger
+
+    for name in list(logger._core.levels.keys()):  # type: ignore[attr-defined]
+        if name not in _DEFAULT_LOGURU_LEVELS:
+            del logger._core.levels[name]  # type: ignore[attr-defined]
+
+
 @cli.command()
-@click.argument("config", required=False)
-def test(config: Optional[str]) -> None:
+@click.argument("configs", nargs=-1)
+def test(configs: Tuple[str, ...]) -> None:
     """Validate configuration and emit fortune text for each configured log level."""
 
-    loguru_config, _, path, _ = _load_loguru_config(config)
-    handler_ids = loguru_config.configure()
-    console.print(f"[green]Configured logger with {len(handler_ids)} handlers from {path or 'stdin'}.[/green]")
+    ensure_example_stubs()
+    loaded = _load_multiple_configs(configs)
+    paths = [path for _, __, path, ___ in loaded]
 
     from loguru import logger
 
-    table = Table(title="Fortune Log Messages")
-    table.add_column("Level", style="magenta")
-    table.add_column("Message", style="green")
+    for index, (loguru_config, _, path, _) in enumerate(loaded):
+        _render_heading(paths, index)
+        _ensure_handler_directories(loguru_config)
+        handler_ids = loguru_config.configure()
+        console.print(
+            f"[green]Configured logger with {len(handler_ids)} handlers from {path or 'stdin'}.[/green]"
+        )
 
-    for level_name in _iter_level_names(loguru_config):
-        message = random.choice(FORTUNES)
-        table.add_row(level_name, message)
-        logger.log(level_name, message)
+        table = Table(title="Fortune Log Messages")
+        table.add_column("Level", style="magenta")
+        table.add_column("Message", style="green")
 
-    console.print(table)
+        for level_name in _iter_level_names(loguru_config):
+            message = random.choice(FORTUNES)
+            table.add_row(level_name, message)
+            logger.log(level_name, message)
+
+        console.print(table)
+
+        for handler_id in handler_ids:
+            logger.remove(handler_id)
+        _reset_custom_levels()
 
 
 _SUPPORTED_FORMATS = {
@@ -180,7 +254,9 @@ _SUPPORTED_FORMATS = {
 }
 
 
-def _detect_format(path: Optional[pathlib.Path], explicit: Optional[str]) -> str:
+def _detect_format(
+    path: Optional[pathlib.Path], explicit: Optional[str], fallback: Optional[str] = None
+) -> str:
     if explicit:
         fmt = explicit.lower()
         if fmt not in _SUPPORTED_FORMATS:
@@ -190,6 +266,11 @@ def _detect_format(path: Optional[pathlib.Path], explicit: Optional[str]) -> str
         suffix = path.suffix.lstrip(".").lower()
         if suffix in _SUPPORTED_FORMATS:
             return _SUPPORTED_FORMATS[suffix]
+    if fallback:
+        fmt = fallback.lower()
+        if fmt in _SUPPORTED_FORMATS:
+            return _SUPPORTED_FORMATS[fmt]
+        raise CliError(f"Unsupported fallback format '{fallback}'.")
     raise CliError("Unable to determine configuration format. Specify --input-format/--output-format explicitly.")
 
 
@@ -223,43 +304,54 @@ def _dump_config(data: Dict, fmt: str, indent: int = 2) -> str:
 
 
 @cli.command()
-@click.argument("input", required=False)
-@click.argument("output", required=False)
+@click.argument("paths", nargs=-1)
 @click.option("--input-format", "input_format", type=str, help="Input configuration format.")
 @click.option("--output-format", "output_format", type=str, help="Output configuration format.")
 @click.option("--indent", default=2, show_default=True, help="Indentation level for JSON/JSON5 output.")
 def convert(
-    input: Optional[str],
-    output: Optional[str],
+    paths: Tuple[str, ...],
     input_format: Optional[str],
     output_format: Optional[str],
     indent: int,
 ) -> None:
     """Convert configuration files between supported formats."""
 
-    loguru_config, data, input_path, loader_name = _load_loguru_config(input)
-    _ = loguru_config  # Only used for validation; conversion relies on raw data.
-
-    inferred_input_format = {
-        "load_json_config": "json",
-        "load_yaml_config": "yaml",
-        "load_json5_config": "json5",
-        "load_toml_config": "toml",
-    }.get(loader_name)
-
-    input_fmt = _detect_format(input_path, input_format or inferred_input_format)
-    output_path = pathlib.Path(output) if output and output != "-" else None
-    output_fmt = _detect_format(output_path, output_format or input_fmt)
-
-    rendered = _dump_config(data, output_fmt, indent=indent)
-
-    if output_path is None:
-        click.echo(rendered, nl=False)
+    if not paths:
+        conversions: list[Tuple[Optional[str], Optional[str]]] = [(None, None)]
+    elif len(paths) == 1:
+        conversions = [(paths[0], None)]
+    elif len(paths) % 2 == 0:
+        conversions = list(zip(paths[0::2], paths[1::2]))
     else:
-        output_path.write_text(rendered)
-        console.print(
-            f"[green]Converted {input_fmt.upper()} configuration to {output_fmt.upper()} at {output_path}.[/green]"
-        )
+        raise CliError("Provide input/output pairs when specifying multiple paths.")
+
+    for index, (input_path_str, output_path_str) in enumerate(conversions):
+        loguru_config, data, input_path, loader_name = _load_loguru_config(input_path_str)
+        _ = loguru_config  # Only used for validation; conversion relies on raw data.
+
+        inferred_input_format = {
+            "load_json_config": "json",
+            "load_yaml_config": "yaml",
+            "load_json5_config": "json5",
+            "load_toml_config": "toml",
+        }.get(loader_name)
+
+        input_fmt = _detect_format(input_path, input_format, inferred_input_format)
+        output_path = pathlib.Path(output_path_str) if output_path_str and output_path_str != "-" else None
+        output_fmt = _detect_format(output_path, output_format, input_fmt)
+
+        rendered = _dump_config(data, output_fmt, indent=indent)
+
+        if len(conversions) > 1:
+            console.rule(f"Conversion {index + 1}")
+
+        if output_path is None:
+            click.echo(rendered, nl=False)
+        else:
+            output_path.write_text(rendered)
+            console.print(
+                f"[green]Converted {input_fmt.upper()} configuration to {output_fmt.upper()} at {output_path}.[/green]"
+            )
 
 
 def main() -> None:
