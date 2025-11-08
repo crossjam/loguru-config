@@ -1,0 +1,45 @@
+{
+  "handlers": [
+    {
+      "sink": "logs/async.log",
+      "enqueue": true,
+      "backtrace": true,
+      "diagnose": true
+    },
+    {
+      "sink": "logs/errors.log",
+      "level": "ERROR",
+      "rotation": "00:00",
+      "retention": 7,
+      "compression": "tar.gz"
+    }
+  ],
+  "levels": [
+    {
+      "name": "AUDIT",
+      "no": 15,
+      "icon": "🔍",
+      "color": "cyan"
+    },
+    {
+      "name": "FAIL",
+      "no": 45,
+      "icon": "✖",
+      "color": "magenta"
+    }
+  ],
+  "extra": {
+    "app": "analytics",
+    "request_id": "<unset>"
+  },
+  "activation": [
+    [
+      "third_party.module",
+      true
+    ],
+    [
+      "api.client",
+      true
+    ]
+  ]
+}

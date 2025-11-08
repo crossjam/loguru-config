@@ -1,0 +1,29 @@
+activation = [["secret.payment", false], ["payments.core", true]]
+[[handlers]]
+sink = "ext://sys.stdout"
+level = "INFO"
+format = "<green>{time}</green> | {message}"
+
+[[handlers]]
+sink = "logs/application.log"
+rotation = "500 KB"
+retention = "10 days"
+compression = "zip"
+enqueue = true
+serialize = true
+
+[[levels]]
+name = "NOTICE"
+no = 25
+icon = "ℹ"
+color = "blue"
+
+[[levels]]
+name = "ALERT"
+no = 35
+icon = "🚨"
+color = "red"
+
+[extra]
+service = "payments"
+environment = "production"

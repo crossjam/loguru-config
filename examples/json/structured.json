@@ -1,0 +1,47 @@
+{
+  "handlers": [
+    {
+      "sink": "logs/service.json",
+      "serialize": true,
+      "diagnose": false
+    },
+    {
+      "sink": "logs/service-debug.log",
+      "level": "DEBUG",
+      "format": "[{time:YYYY-MM-DD HH:mm:ss}] {name} | {message}",
+      "filter": "service"
+    }
+  ],
+  "levels": [
+    {
+      "name": "TRACE",
+      "no": 5,
+      "icon": "🧭",
+      "color": "white"
+    },
+    {
+      "name": "METRIC",
+      "no": 55,
+      "icon": "📈",
+      "color": "green"
+    }
+  ],
+  "extra": {
+    "service_name": "service-api",
+    "region": "us-east-1"
+  },
+  "activation": [
+    [
+      "service.api",
+      true
+    ],
+    [
+      "service.metrics",
+      true
+    ],
+    [
+      "service.debug",
+      false
+    ]
+  ]
+}
