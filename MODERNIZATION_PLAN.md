@@ -8,7 +8,12 @@ Replace the existing packaging setup with a uv-driven `pyproject.toml` that stil
 - Configure `[build-system]` to use `setuptools.build_meta` and include minimal setuptools/wheel versions.
 - Add `[tool.uv]` settings for dependency groups/tests and generate `uv.lock`.
 - Update `README.md` usage/development instructions to reference uv commands (`uv sync`, `uv run pytest`), removing outdated tox/pip guidance.
-- Decide whether to delete `setup.py`/`tox.ini` or keep thin wrappers pointing to the new configuration; adjust packaging classifiers for supported Python versions.
+- Examine the `setup.py`/`tox.ini` files; adjust any packaging
+  information in `pyproject.toml` to capture the original as needed;
+  then remove those files
+- Update the repoository to use pytest as the testing framework ; uv
+  run pytest should run successfully ; add pytest as both a dev package
+  and an optional dependency in pyproject.toml
 ```
 
 ## 2. Migrate TOML handling to tomlkit
