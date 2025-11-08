@@ -22,13 +22,13 @@ Loguru-config requires Python 3.11 or newer.
 With [uv](https://docs.astral.sh/uv/) installed, add the package to your project with:
 
 ```bash
-uv add loguru-config
+uv add git+https://github.com/crossjam/loguru-config
 ```
 
 If you prefer `pip`, the published wheel remains available:
 
 ```bash
-pip install loguru-config
+pip install git+https://github.com/crossjam/loguru-config
 ```
 
 ## Features
