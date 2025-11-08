@@ -1,0 +1,49 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "loguru-config"
+version = "0.1.0"
+description = "Loguru configuration from configuration files."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Erez Zinman" }]
+keywords = ["loguru", "configuration", "config", "logging", "log"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: System :: Logging",
+]
+dependencies = [
+    "loguru>=0.7.0",
+    "pyyaml>=6.0",
+    "pyjson5>=1.6.2",
+    "tomlkit>=0.12",
+]
+
+[project.optional-dependencies]
+tests = [
+    "pytest>=8.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/erezinman/loguru-config"
+
+[tool.setuptools.packages.find]
+include = ["loguru_config*"]
+
+[tool.setuptools.package-data]
+"loguru_config" = ["py.typed"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=8.0",
+]

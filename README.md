@@ -17,6 +17,16 @@ other formats (again, see [Extending the configurator](#extending-the-configurat
 
 ## Installation
 
+Loguru-config requires Python 3.11 or newer.
+
+With [uv](https://docs.astral.sh/uv/) installed, add the package to your project with:
+
+```bash
+uv add loguru-config
+```
+
+If you prefer `pip`, the published wheel remains available:
+
 ```bash
 pip install loguru-config
 ```
@@ -191,3 +201,17 @@ config.supported_protocol_parsers = list(LoguruConfig.supported_protocol_parsers
 
 config.parse().configure()
 ```
+
+## Development
+
+This project is managed with [uv](https://docs.astral.sh/uv/). To bootstrap a development environment and run the
+test suite:
+
+```bash
+uv sync
+uv run pytest
+```
+
+The `uv sync` command resolves and installs dependencies into a local virtual environment (by default, `.venv/`).
+After updating dependencies in `pyproject.toml`, regenerate the lock file with `uv lock` or `uv sync` before
+committing.
