@@ -1,5 +1,7 @@
 # Loguru-config
 
+_This is a personal fork of https://github.com/erezinman/loguru-config_
+
 Loguru-config is a simple configurator for the [Loguru](https://github.com/Delgan/loguru) logging library. It extends
 the functionality of Loguru by allowing the user to configure the logger from a configuration file. This package
 provides a much-needed feature to Loguru, which is the ability to configure the logger from a configuration file (for
