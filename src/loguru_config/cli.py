@@ -145,7 +145,7 @@ def about() -> None:
 @cli.command()
 @click.argument("configs", nargs=-1)
 def validate(configs: Tuple[str, ...]) -> None:
-    """Validate that a configuration file is parseable and valid."""
+    """Validate configuration files, or stdin when no paths are provided."""
 
     loaded = _load_multiple_configs(configs)
     paths = [path for _, __, path, ___ in loaded]
@@ -231,7 +231,7 @@ def _reset_custom_levels() -> None:
 @cli.command()
 @click.argument("configs", nargs=-1)
 def test(configs: Tuple[str, ...]) -> None:
-    """Validate configuration and emit fortune text for each configured log level."""
+    """Validate configurations (or stdin) and emit fortunes for each log level."""
 
     ensure_example_stubs()
     loaded = _load_multiple_configs(configs)
@@ -333,7 +333,7 @@ def convert(
     output_format: Optional[str],
     indent: int,
 ) -> None:
-    """Convert configuration files between supported formats."""
+    """Convert configs, defaulting to stdin/stdout when no paths are supplied."""
 
     if not paths:
         conversions: list[Tuple[Optional[str], Optional[str]]] = [(None, None)]
