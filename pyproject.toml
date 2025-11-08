@@ -9,7 +9,9 @@ description = "Loguru configuration from configuration files."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { file = "LICENSE" }
-authors = [{ name = "Erez Zinman" }]
+authors = [{ name = "Erez Zinman" },
+	   { name = "Brian M. Dennis", email = "bmd@ninjapirate.dev"},
+	   ]
 keywords = ["loguru", "configuration", "config", "logging", "log"]
 classifiers = [
     "Development Status :: 3 - Alpha",
