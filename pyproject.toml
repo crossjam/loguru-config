@@ -47,7 +47,7 @@ include = ["loguru_config*"]
 [tool.setuptools.package-data]
 "loguru_config" = ["py.typed"]
 
-[tool.uv]
-dev-dependencies = [
-    "pytest>=8.0",
+[dependency-groups]
+dev = [
+     "pytest>=8.0",
 ]
