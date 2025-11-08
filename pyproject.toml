@@ -27,6 +27,9 @@ dependencies = [
     "pyyaml>=6.0",
     "pyjson5>=1.6.2",
     "tomlkit>=0.12",
+    "click>=8.1",
+    "click-default-group>=1.2.4",
+    "rich>=13.7",
 ]
 
 [project.optional-dependencies]
@@ -46,6 +49,9 @@ include = ["loguru_config*"]
 
 [tool.setuptools.package-data]
 "loguru_config" = ["py.typed"]
+
+[project.scripts]
+"loguru-config" = "loguru_config.cli:main"
 
 [dependency-groups]
 dev = [
